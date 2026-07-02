@@ -1,0 +1,123 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import net from 'node:net';
+import path from 'node:path';
+import { createPreviewServer, startServer } from '../src/server.js';
+
+let dir;
+let srv; // { server, broadcast, close }
+let port;
+
+before(async () => {
+  dir = await mkdtemp(path.join(tmpdir(), 'dp-test-'));
+  await writeFile(path.join(dir, 'a.md'), '# Hello\n\n```mermaid\ngraph TD; A-->B;\n```\n');
+  await writeFile(path.join(dir, 'b.html'), '<html><body><p>raw-body</p></body></html>');
+  await writeFile(path.join(dir, 'note.txt'), 'plain');
+  await mkdir(path.join(dir, 'sub'));
+  await writeFile(path.join(dir, 'sub', 'c.md'), '# Sub');
+  srv = createPreviewServer({ rootDir: dir, mode: 'dir' });
+  port = await startServer(srv.server, { port: 0 });
+});
+
+after(() => srv.close());
+
+const get = (p) => fetch(`http://127.0.0.1:${port}${p}`);
+
+test('dir モード: / は .md/.html の一覧を返す (txt は含まない)', async () => {
+  const res = await get('/');
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /href="\/view\/a\.md"/);
+  assert.match(html, /href="\/view\/sub\/c\.md"/);
+  assert.match(html, /href="\/view\/b\.html"/);
+  assert.doesNotMatch(html, /note\.txt/);
+});
+
+test('/view/<md> は変換済みの完全ページを返す', async () => {
+  const res = await get('/view/a.md');
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /<h1>Hello<\/h1>/);
+  assert.match(html, /data-dp-mode="md"/);
+  assert.match(html, /<pre class="mermaid">/);
+});
+
+test('/view/<html> は生 HTML + リロードスクリプト注入を返す', async () => {
+  const res = await get('/view/b.html');
+  const html = await res.text();
+  assert.match(html, /<p>raw-body<\/p>/);
+  assert.equal(html.split('EventSource').length - 1, 1);
+});
+
+test('/raw/<md> は HTML 断片 (完全ページではない) を返す', async () => {
+  const res = await get('/raw/a.md');
+  const html = await res.text();
+  assert.match(html, /<h1>Hello<\/h1>/);
+  assert.doesNotMatch(html, /<html/);
+});
+
+test('/view/<txt> や画像などは静的配信される', async () => {
+  const res = await get('/view/note.txt');
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), 'plain');
+});
+
+test('存在しないファイルは 404', async () => {
+  const res = await get('/raw/nope.md');
+  assert.equal(res.status, 404);
+});
+
+test('パストラバーサルは 400 で拒否される', async () => {
+  // fetch は ../ を正規化してしまうので生ソケットで送る
+  const raw = await new Promise((resolve, reject) => {
+    const sock = net.connect(port, '127.0.0.1', () => {
+      sock.write('GET /raw/..%2F..%2Fetc%2Fpasswd HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n');
+    });
+    let buf = '';
+    sock.on('data', (d) => (buf += d));
+    sock.on('end', () => resolve(buf));
+    sock.on('error', reject);
+  });
+  assert.match(raw, /^HTTP\/1\.1 400/);
+});
+
+test('/assets/client.js と /assets/mermaid.min.js が配信される', async () => {
+  for (const p of ['/assets/client.js', '/assets/style.css', '/assets/mermaid.min.js']) {
+    const res = await get(p);
+    assert.equal(res.status, 200, p);
+  }
+});
+
+test('/events は text/event-stream を返し broadcast が届く', async () => {
+  const res = await get('/events');
+  assert.match(res.headers.get('content-type'), /text\/event-stream/);
+  const reader = res.body.getReader();
+  srv.broadcast({ path: 'a.md', event: 'change' });
+  let text = '';
+  for (let i = 0; i < 5 && !text.includes('a.md'); i++) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += new TextDecoder().decode(value);
+  }
+  assert.match(text, /"path":"a\.md"/);
+  await reader.cancel();
+});
+
+test('file モード: / がそのファイルのプレビューになる', async () => {
+  const s2 = createPreviewServer({ rootDir: dir, entry: 'a.md', mode: 'file' });
+  const p2 = await startServer(s2.server, { port: 0 });
+  const res = await fetch(`http://127.0.0.1:${p2}/`);
+  const html = await res.text();
+  assert.match(html, /<h1>Hello<\/h1>/);
+  s2.close();
+});
+
+test('startServer は使用中ポートを +1 して再試行する', async () => {
+  const s3 = createPreviewServer({ rootDir: dir, mode: 'dir' });
+  const p3 = await startServer(s3.server, { port });
+  assert.notEqual(p3, port);
+  assert.ok(p3 > port);
+  s3.close();
+});
