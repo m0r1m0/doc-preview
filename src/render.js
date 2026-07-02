@@ -72,7 +72,8 @@ ${items}
 }
 
 export function injectReloadScript(html, relPath) {
-  const script = `<script>(()=>{const p=${JSON.stringify(relPath)};const es=new EventSource("/events");es.onmessage=(e)=>{const d=JSON.parse(e.data);if(d.path===p)location.reload();};})();</script>`;
+  const pathLiteral = JSON.stringify(relPath).replaceAll('<', '\\u003c');
+  const script = `<script>(()=>{const p=${pathLiteral};const es=new EventSource("/events");es.onmessage=(e)=>{const d=JSON.parse(e.data);if(d.path===p)location.reload();};})();</script>`;
   const idx = html.toLowerCase().lastIndexOf('</body>');
   if (idx === -1) return html + script;
   return html.slice(0, idx) + script + html.slice(idx);

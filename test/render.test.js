@@ -45,3 +45,9 @@ test('injectReloadScript は </body> が無ければ末尾に追加する', () =
   const out = injectReloadScript('<h1>x</h1>', 'x.html');
   assert.match(out, /EventSource/);
 });
+
+test('injectReloadScript は relPath に </script> があってもタグを壊さない', () => {
+  const out = injectReloadScript('<html><body></body></html>', 'a</script><script>x.html');
+  assert.doesNotMatch(out, /<\/script><script>x/);
+  assert.match(out, /\\u003c\/script/);
+});
