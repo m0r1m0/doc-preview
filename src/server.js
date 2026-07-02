@@ -128,7 +128,7 @@ export function createPreviewServer({ rootDir, entry = '', mode }) {
       } catch {
         return sendMissingPage(res, relPath);
       }
-      return send(res, 200, injectReloadScript(text, relPath, backHref), 'text/html; charset=utf-8');
+      return send(res, 200, injectReloadScript(text, relPath), 'text/html; charset=utf-8');
     }
     return serveStatic(res, abs);
   }

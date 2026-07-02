@@ -114,11 +114,11 @@ test('file モード: / がそのファイルのプレビューになる', async
   s2.close();
 });
 
-test('dir モード: /view の md と html に一覧へ戻るヘッダーが付く', async () => {
+test('dir モード: /view の md に一覧へ戻るヘッダーが付き、html には付かない', async () => {
   const mdHtml = await (await get('/view/a.md')).text();
   assert.match(mdHtml, /一覧に戻る/);
   const rawHtml = await (await get('/view/b.html')).text();
-  assert.match(rawHtml, /一覧に戻る/);
+  assert.doesNotMatch(rawHtml, /一覧に戻る/);
 });
 
 test('dir モード: /raw の断片には戻るヘッダーが付かない', async () => {

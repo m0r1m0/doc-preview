@@ -62,14 +62,8 @@ test('buildMarkdownPage は backHref 無しではヘッダーを出さない', (
   assert.doesNotMatch(page, /dp-header/);
 });
 
-test('injectReloadScript は backHref 指定で戻りヘッダーも注入する', () => {
-  const out = injectReloadScript('<html><body><h1>x</h1></body></html>', 'x.html', '/');
-  assert.match(out, /一覧に戻る/);
-  assert.match(out, /dp-back-header/);
-  assert.ok(out.indexOf('dp-back-header') < out.indexOf('</body>'));
-});
-
-test('injectReloadScript は backHref 無しではヘッダーを注入しない', () => {
+test('injectReloadScript はリロードスクリプト以外を注入しない (ヘッダー等の見た目の変更なし)', () => {
   const out = injectReloadScript('<html><body><h1>x</h1></body></html>', 'x.html');
+  assert.doesNotMatch(out, /一覧に戻る/);
   assert.doesNotMatch(out, /dp-back-header/);
 });

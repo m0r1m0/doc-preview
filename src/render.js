@@ -74,15 +74,10 @@ ${items}
 </html>`;
 }
 
-export function injectReloadScript(html, relPath, backHref) {
+export function injectReloadScript(html, relPath) {
   const pathLiteral = JSON.stringify(relPath).replaceAll('<', '\\u003c');
   const script = `<script>(()=>{const p=${pathLiteral};const es=new EventSource("/events");es.onmessage=(e)=>{const d=JSON.parse(e.data);if(d.path===p)location.reload();};})();</script>`;
-  // ユーザー HTML の CSS に依存しないよう、ヘッダーはインラインスタイルの固定バーで重ねる
-  const header = backHref
-    ? `<div id="dp-back-header" style="position:fixed;top:0;left:0;right:0;z-index:2147483647;box-sizing:border-box;display:flex;align-items:center;height:32px;padding:0 12px;background:rgba(127,127,127,.18);backdrop-filter:blur(6px);font:13px/1 -apple-system,'Hiragino Sans',sans-serif;"><a href="${escapeHtml(backHref)}" style="color:inherit;text-decoration:none;">← 一覧に戻る</a></div>`
-    : '';
-  const injection = header + script;
   const idx = html.toLowerCase().lastIndexOf('</body>');
-  if (idx === -1) return html + injection;
-  return html.slice(0, idx) + injection + html.slice(idx);
+  if (idx === -1) return html + script;
+  return html.slice(0, idx) + script + html.slice(idx);
 }
