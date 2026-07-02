@@ -12,6 +12,9 @@ export function startWatcher({ rootDir, onEvent }) {
       return (base.startsWith('.') && p !== root) || base === 'node_modules';
     },
   });
+  watcher.on('error', (err) => {
+    console.error(`watch error: ${err.message}`);
+  });
   for (const event of ['change', 'add', 'unlink']) {
     watcher.on(event, (absPath) => {
       if (!DOC_EXTS.has(path.extname(absPath).toLowerCase())) return;

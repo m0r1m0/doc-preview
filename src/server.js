@@ -223,6 +223,9 @@ export function startServer(server, { port = 3000, host = '127.0.0.1', maxTries 
       server.once('error', onError);
       server.listen(p, host, () => {
         server.removeListener('error', onError);
+        server.on('error', (err) => {
+          console.error(`server error: ${err.message}`);
+        });
         resolve(server.address().port);
       });
     };

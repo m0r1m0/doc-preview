@@ -121,3 +121,11 @@ test('startServer は使用中ポートを +1 して再試行する', async () =
   assert.ok(p3 > port);
   s3.close();
 });
+
+test('startServer 後の server に error リスナーが付いていてクラッシュしない', async () => {
+  const s4 = createPreviewServer({ rootDir: dir, mode: 'dir' });
+  await startServer(s4.server, { port: 0 });
+  assert.ok(s4.server.listenerCount('error') >= 1);
+  s4.server.emit('error', new Error('boom'));
+  s4.close();
+});

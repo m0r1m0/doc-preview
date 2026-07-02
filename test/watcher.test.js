@@ -32,3 +32,11 @@ test('md の追加と変更がイベントになり、txt は無視される', a
   assert.ok(!events.some((e) => e.path === 'skip.txt'), 'txt は無視されること');
   await watcher.close();
 });
+
+test('watcher に error リスナーが付いていてクラッシュしない', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'dp-watch-'));
+  const watcher = startWatcher({ rootDir: dir, onEvent: () => {} });
+  assert.ok(watcher.listenerCount('error') >= 1);
+  watcher.emit('error', new Error('boom')); // リスナーが無ければここでプロセスが落ちる
+  await watcher.close();
+});
