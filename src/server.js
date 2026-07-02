@@ -60,6 +60,8 @@ async function listDocFiles(root, dir = root) {
 export function createPreviewServer({ rootDir, entry = '', mode }) {
   const root = path.resolve(rootDir);
   const clients = new Set();
+  // dir モードのプレビューだけ一覧 (/) への戻り導線を付ける
+  const backHref = mode === 'dir' ? '/' : undefined;
 
   function broadcast(payload) {
     const msg = `data: ${JSON.stringify(payload)}\n\n`;
@@ -85,6 +87,7 @@ export function createPreviewServer({ rootDir, entry = '', mode }) {
         title: relPath,
         contentHtml: `<p class="dp-missing">ファイルが見つかりません: ${escapeHtml(relPath)}</p>`,
         relPath,
+        backHref,
       }),
       'text/html; charset=utf-8'
     );
@@ -114,7 +117,7 @@ export function createPreviewServer({ rootDir, entry = '', mode }) {
       return send(
         res,
         200,
-        buildMarkdownPage({ title: path.basename(abs), contentHtml: renderMarkdown(text), relPath }),
+        buildMarkdownPage({ title: path.basename(abs), contentHtml: renderMarkdown(text), relPath, backHref }),
         'text/html; charset=utf-8'
       );
     }
@@ -125,7 +128,7 @@ export function createPreviewServer({ rootDir, entry = '', mode }) {
       } catch {
         return sendMissingPage(res, relPath);
       }
-      return send(res, 200, injectReloadScript(text, relPath), 'text/html; charset=utf-8');
+      return send(res, 200, injectReloadScript(text, relPath, backHref), 'text/html; charset=utf-8');
     }
     return serveStatic(res, abs);
   }

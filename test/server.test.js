@@ -114,6 +114,26 @@ test('file モード: / がそのファイルのプレビューになる', async
   s2.close();
 });
 
+test('dir モード: /view の md と html に一覧へ戻るヘッダーが付く', async () => {
+  const mdHtml = await (await get('/view/a.md')).text();
+  assert.match(mdHtml, /一覧に戻る/);
+  const rawHtml = await (await get('/view/b.html')).text();
+  assert.match(rawHtml, /一覧に戻る/);
+});
+
+test('dir モード: /raw の断片には戻るヘッダーが付かない', async () => {
+  const frag = await (await get('/raw/a.md')).text();
+  assert.doesNotMatch(frag, /一覧に戻る/);
+});
+
+test('file モード: / のプレビューに戻るヘッダーは付かない', async () => {
+  const s5 = createPreviewServer({ rootDir: dir, entry: 'a.md', mode: 'file' });
+  const p5 = await startServer(s5.server, { port: 0 });
+  const html = await (await fetch(`http://127.0.0.1:${p5}/`)).text();
+  assert.doesNotMatch(html, /一覧に戻る/);
+  s5.close();
+});
+
 test('startServer は使用中ポートを +1 して再試行する', async () => {
   const s3 = createPreviewServer({ rootDir: dir, mode: 'dir' });
   const p3 = await startServer(s3.server, { port });

@@ -31,6 +31,20 @@ main#content {
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
 }
+.dp-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.45em 1rem;
+  font-size: 0.9rem;
+}
+.dp-header a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.dp-header a:hover { color: var(--link); }
 h1, h2, h3, h4 { line-height: 1.3; margin: 1.6em 0 0.6em; }
 h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
 h2 { font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
