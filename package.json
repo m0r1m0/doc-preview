@@ -1,0 +1,22 @@
+{
+  "name": "doc-preview",
+  "version": "0.1.0",
+  "description": "Live preview markdown/HTML in the browser with SSE reload and mermaid support",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "dp": "bin/dp.js",
+    "doc-preview": "bin/dp.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "chokidar": "^4.0.1",
+    "mermaid": "^11.4.0"
+  }
+}
