@@ -111,5 +111,5 @@ public/style.css     markdown 表示用スタイル(GitHub 風・ダーク/ラ�
 
 ## 配布
 
-- リポジトリ: `/home/yukiw/doc-preview`(GitHub: `m0r1m0/doc-preview`、private で作成)
+- リポジトリ: `/home/yukiw/repos/doc-preview`(GitHub: `m0r1m0/doc-preview`、private で作成)
 - インストール: `npm install && npm link` で `dp` をグローバル登録
