@@ -34,6 +34,13 @@ test('対象外拡張子はエラー終了', async () => {
   assert.match(r.stderr, /\.md \/ \.html/);
 });
 
+test('不正な --port はエラー終了 (code 1) でスタックトレースを出さない', async () => {
+  const r = await runCli(['.', '--port', 'abc', '--no-open']);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /ポート番号が不正です/);
+  assert.doesNotMatch(r.stderr, /ERR_SOCKET_BAD_PORT/);
+});
+
 test('--help は usage を出して正常終了', async () => {
   const r = await runCli(['--help']);
   assert.equal(r.code, 0);

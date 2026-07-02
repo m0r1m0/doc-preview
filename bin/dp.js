@@ -77,11 +77,17 @@ if (st.isDirectory()) {
   entry = path.basename(absTarget);
 }
 
+const port = Number(values.port);
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  console.error(`error: ポート番号が不正です: ${values.port}`);
+  process.exit(1);
+}
+
 const { server, broadcast } = createPreviewServer({ rootDir, entry, mode });
-const port = await startServer(server, { port: Number(values.port) });
+const actualPort = await startServer(server, { port });
 startWatcher({ rootDir, onEvent: broadcast });
 
-const url = `http://127.0.0.1:${port}/`;
+const url = `http://127.0.0.1:${actualPort}/`;
 console.log(`doc-preview: ${mode === 'file' ? absTarget : rootDir} → ${url}`);
 console.log('Ctrl+C で終了');
 if (!values['no-open']) openBrowser(url);
