@@ -4,12 +4,17 @@ import { statSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPreviewServer, startServer } from '../src/server.js';
+import { createReviewServer } from '../src/review-server.js';
+import { formatReviewResult, DISMISSED_TEXT } from '../src/format-review.js';
 import { startWatcher } from '../src/watcher.js';
 import { openBrowser } from '../src/open-browser.js';
 
 const USAGE = `Usage: dp <path> [options]
+       dp review <file.md> [options]
 
   <path>       プレビューする .md / .html ファイル、またはディレクトリ
+  review       レビューモード: ブラウザでコメントを付けて stdout に結果を出力
+               (ユーザーの承認/送信までブロックする。AI エージェント連携用)
 
 Options:
   -p, --port <n>   ポート番号 (既定 3000。使用中なら空きポートまで自動で +1)
@@ -47,6 +52,63 @@ if (values.version) {
   process.exit(0);
 }
 
+const port = Number(values.port);
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  console.error(`error: ポート番号が不正です: ${values.port}`);
+  process.exit(1);
+}
+
+// --- レビューモード: dp review <file.md> ---
+if (positionals[0] === 'review') {
+  const target = positionals[1];
+  if (!target) {
+    console.error(`error: レビューする .md ファイルを指定してください\n\n${USAGE}`);
+    process.exit(1);
+  }
+  const absTarget = path.resolve(target);
+  let st;
+  try {
+    st = statSync(absTarget);
+  } catch {
+    console.error(`error: パスが存在しません: ${target}`);
+    process.exit(1);
+  }
+  if (!st.isFile() || path.extname(absTarget).toLowerCase() !== '.md') {
+    console.error(`error: レビューモードは .md ファイルのみ対応です: ${target}`);
+    process.exit(1);
+  }
+
+  const { server, decision, close } = createReviewServer({
+    filePath: absTarget,
+    displayPath: target,
+  });
+  let actualPort;
+  try {
+    actualPort = await startServer(server, { port });
+  } catch (err) {
+    console.error(`error: サーバーを起動できません: ${err.message}`);
+    process.exit(1);
+  }
+  const url = `http://127.0.0.1:${actualPort}/`;
+  // stdout は結果契約専用なので、案内はすべて stderr に出す
+  console.error(`doc-preview review: ${absTarget} → ${url}`);
+  console.error('ブラウザでレビューしてください (承認 / コメントを送信 / タブを閉じる=中断)');
+  if (!values['no-open']) openBrowser(url);
+
+  const onSignal = () => {
+    console.log(DISMISSED_TEXT);
+    process.exit(0);
+  };
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
+
+  const result = await decision;
+  console.log(formatReviewResult({ ...result, filePath: target }));
+  close();
+  process.exit(0);
+}
+
+// --- 通常プレビュー ---
 const target = positionals[0];
 if (!target) {
   console.error(`error: パスを指定してください\n\n${USAGE}`);
@@ -75,12 +137,6 @@ if (st.isDirectory()) {
   mode = 'file';
   rootDir = path.dirname(absTarget);
   entry = path.basename(absTarget);
-}
-
-const port = Number(values.port);
-if (!Number.isInteger(port) || port < 0 || port > 65535) {
-  console.error(`error: ポート番号が不正です: ${values.port}`);
-  process.exit(1);
 }
 
 const { server, broadcast } = createPreviewServer({ rootDir, entry, mode });
