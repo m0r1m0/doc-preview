@@ -39,7 +39,7 @@ test('/ はレンダリング済み本文 + レビュー UI を返す', async ()
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /data-dp-mode="review"/);
-  assert.match(html, /<h1>Title<\/h1>/);
+  assert.match(html, /<h1 id="title">Title<\/h1>/);
   assert.match(html, /id="dp-btn-approve"/);
 });
 

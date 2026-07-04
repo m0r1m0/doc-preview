@@ -4,7 +4,7 @@ import { renderMarkdown, buildMarkdownPage, buildIndexPage, injectReloadScript, 
 
 test('見出しとテーブルを HTML に変換する', () => {
   const html = renderMarkdown('# Title\n\n| a | b |\n|---|---|\n| 1 | 2 |');
-  assert.match(html, /<h1>Title<\/h1>/);
+  assert.match(html, /<h1 id="title">Title<\/h1>/);
   assert.match(html, /<table>/);
 });
 
@@ -115,4 +115,51 @@ test('buildReviewPage は title / filePath をエスケープする', () => {
   });
   assert.doesNotMatch(html, /<title>レビュー: <x>/);
   assert.match(html, /data-dp-file="a&quot;b\.md"/);
+});
+
+test('見出しに GitHub 風スラッグの id が付く', () => {
+  const html = renderMarkdown('# Hello World');
+  assert.match(html, /<h1 id="hello-world">Hello World<\/h1>/);
+});
+
+test('h1–h6 すべてに id が付く', () => {
+  const html = renderMarkdown('# a\n\n## b\n\n### c\n\n#### d\n\n##### e\n\n###### f');
+  for (const [tag, id] of [['h1', 'a'], ['h2', 'b'], ['h3', 'c'], ['h4', 'd'], ['h5', 'e'], ['h6', 'f']]) {
+    assert.match(html, new RegExp(`<${tag} id="${id}">`));
+  }
+});
+
+test('日本語見出しはそのまま id になる', () => {
+  const html = renderMarkdown('## 使い方\n\n### インストール手順');
+  assert.match(html, /<h2 id="使い方">/);
+  assert.match(html, /<h3 id="インストール手順">/);
+});
+
+test('見出しの ASCII 記号は除去され空白は - になる', () => {
+  const html = renderMarkdown('## Hello, World! (v2.0)');
+  assert.match(html, /<h2 id="hello-world-v20">/);
+});
+
+test('重複する見出しは -2, -3 と付番される', () => {
+  const html = renderMarkdown('## Setup\n\n## Setup\n\n## Setup');
+  assert.match(html, /<h2 id="setup">/);
+  assert.match(html, /<h2 id="setup-2">/);
+  assert.match(html, /<h2 id="setup-3">/);
+});
+
+test('付番は renderMarkdown 呼び出しごとにリセットされる', () => {
+  renderMarkdown('## Setup');
+  const html = renderMarkdown('## Setup');
+  assert.match(html, /<h2 id="setup">/);
+  assert.doesNotMatch(html, /id="setup-2"/);
+});
+
+test('インライン記法入りの見出しはテキストだけで id を作る', () => {
+  const html = renderMarkdown('## Use `dp review` **now**');
+  assert.match(html, /<h2 id="use-dp-review-now">/);
+});
+
+test('記号のみの見出しは section-N にフォールバックする', () => {
+  const html = renderMarkdown('# Intro\n\n## !!!');
+  assert.match(html, /<h2 id="section-2">/);
 });

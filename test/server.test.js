@@ -39,7 +39,7 @@ test('/view/<md> は変換済みの完全ページを返す', async () => {
   const res = await get('/view/a.md');
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /<h1>Hello<\/h1>/);
+  assert.match(html, /<h1 id="hello">Hello<\/h1>/);
   assert.match(html, /data-dp-mode="md"/);
   assert.match(html, /<pre class="mermaid">/);
 });
@@ -54,7 +54,7 @@ test('/view/<html> は生 HTML + リロードスクリプト注入を返す', as
 test('/raw/<md> は HTML 断片 (完全ページではない) を返す', async () => {
   const res = await get('/raw/a.md');
   const html = await res.text();
-  assert.match(html, /<h1>Hello<\/h1>/);
+  assert.match(html, /<h1 id="hello">Hello<\/h1>/);
   assert.doesNotMatch(html, /<html/);
 });
 
@@ -110,7 +110,7 @@ test('file モード: / がそのファイルのプレビューになる', async
   const p2 = await startServer(s2.server, { port: 0 });
   const res = await fetch(`http://127.0.0.1:${p2}/`);
   const html = await res.text();
-  assert.match(html, /<h1>Hello<\/h1>/);
+  assert.match(html, /<h1 id="hello">Hello<\/h1>/);
   s2.close();
 });
 
@@ -148,4 +148,9 @@ test('startServer 後の server に error リスナーが付いていてクラ�
   assert.ok(s4.server.listenerCount('error') >= 1);
   s4.server.emit('error', new Error('boom'));
   s4.close();
+});
+
+test('/raw/<md> の断片の見出しに id が付く (ライブ更新後も ToC アンカーが成立する)', async () => {
+  const frag = await (await get('/raw/a.md')).text();
+  assert.match(frag, /<h1 id="hello">Hello<\/h1>/);
 });
