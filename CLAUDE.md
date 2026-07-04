@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 doc-preview は markdown / HTML をブラウザでライブプレビューする CLI (`dp`)。ローカルサーバーを立てて配信し、ファイル保存で即時反映する。依存は最小限 (markdown-it / chokidar / mermaid) で、外部 CDN に頼らずオフラインで動くことを重視している。配布はローカルのみ (`npm link`) を想定。
 
+## 開発ワークフロー (PR とマージ)
+
+変更を加えるときは以下のフローに従う。
+
+1. **main へ直接コミットしない。** `main` から作業ブランチを切って作業し、PR を作成する。
+2. **PR を出したら Monitor でその PR のマージ状態を監視する** (persistent。MERGED / CLOSED を検知したら通知し、終了状態になったら監視を止める)。
+3. **マージされたら後片付けする**:
+   - ローカル `main` を最新化: `git checkout main && git pull --ff-only origin main`
+   - 作業ブランチを削除: `git branch -d <branch>` (ローカル) と `git push origin --delete <branch>` (リモート)
+
 ## コマンド
 
 ```bash
