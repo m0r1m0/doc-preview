@@ -51,7 +51,7 @@
   let pendingRange = null;
 
   document.addEventListener('mouseup', (e) => {
-    if (finished || fab.contains(e.target)) return;
+    if (finished || fab.contains(e.target) || !editor.hidden) return;
     // mouseup 直後は selection が未確定のことがあるので次のタスクで判定する
     setTimeout(() => {
       const sel = window.getSelection();
@@ -72,6 +72,7 @@
   }
 
   fab.addEventListener('click', () => {
+    if (finished) return;
     hideFab();
     if (pendingRange) openEditor(pendingRange);
   });
@@ -104,6 +105,7 @@
     editor.hidden = true;
   });
   editor.querySelector('.dp-save').addEventListener('click', () => {
+    if (finished) return;
     const text = textarea.value.trim();
     if (!text || !editorRange) return;
     addComment(editorRange, text);
@@ -200,13 +202,17 @@
     btnApprove.disabled = true;
     btnSubmit.disabled = true;
     try {
-      await fetch('/api/decision', {
+      const res = await fetch('/api/decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        keepalive: true,
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       statusEl.textContent = '送信しました。このタブは閉じてください。';
       document.body.classList.add('dp-review-done');
+      hideFab();
+      editor.hidden = true;
     } catch {
       finished = false;
       btnApprove.disabled = false;
