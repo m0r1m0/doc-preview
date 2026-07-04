@@ -42,7 +42,23 @@ export function createReviewServer({ filePath, displayPath = filePath }) {
     return abs;
   }
 
+  // 任意のウェブページから fetch(..., {mode:'no-cors'}) で叩かれ、承認偽造や
+  // 偽コメント注入 (エージェントへのプロンプトインジェクション経路) になるのを防ぐ。
+  // Origin が無い (curl / Node fetch など) 場合は許可。存在する場合は
+  // 127.0.0.1 / localhost のみ許可する。ブラウザの navigator.sendBeacon は
+  // 同一オリジンページから送られ Origin は http://127.0.0.1:PORT になるため許可される。
+  function isAllowedOrigin(origin) {
+    if (!origin) return true;
+    try {
+      const { hostname } = new URL(origin);
+      return hostname === '127.0.0.1' || hostname === 'localhost';
+    } catch {
+      return false;
+    }
+  }
+
   async function handleDecision(req, res) {
+    if (!isAllowedOrigin(req.headers.origin)) return send(res, 403, 'Forbidden');
     let body = '';
     for await (const chunk of req) {
       body += chunk;

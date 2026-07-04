@@ -96,6 +96,23 @@ test('review: dismiss → 中断文言', async () => {
   assert.equal(stdout().trim(), 'Review session closed without feedback.');
 });
 
+test('review: 巨大コメント (パイプバッファ超) でも stdout が全文届く', async () => {
+  const file = await makeDoc();
+  const s = spawnReview(file);
+  const url = await s.url;
+  const bigQuote = 'x'.repeat(200_000);
+  await postDecision(url, {
+    decision: 'comments',
+    comments: [{ quote: bigQuote, section: '## Section A', text: 'ここ直して' }],
+  });
+  const { code, stdout } = await s.exited;
+  assert.equal(code, 0);
+  const out = stdout();
+  assert.ok(out.length > 200_000, `stdout が短すぎる (途中で切れた疑い): ${out.length}`);
+  assert.match(out, /上記のコメントすべてに対応してください。/);
+  assert.match(out, new RegExp(`> ${bigQuote}`));
+});
+
 test('review: SIGTERM → 中断文言で正常終了', async () => {
   const file = await makeDoc();
   const s = spawnReview(file);

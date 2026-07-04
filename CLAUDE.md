@@ -76,6 +76,7 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
   `Review session closed without feedback.` / `# レビューコメント` 形式のみを出力する。
   文言を変えるときは `.claude/skills/dp-review/SKILL.md` と README も合わせて変える。
   案内ログは stderr に出すこと。
+- **`/api/decision` は Origin ヘッダーを検証する**: `127.0.0.1` / `localhost` 以外のオリジンからの POST は 403 で拒否する (Origin なしは許可)。任意のウェブページからの承認偽造・コメント注入を防ぐため。
 
 ## テスト方針
 

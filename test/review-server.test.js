@@ -91,6 +91,34 @@ test('MAX_BODY 超過は 413 で拒否され、接続破棄後も後続リクエ
   assert.equal((await get('/')).status, 200);
 });
 
+test('Origin が localhost 以外だと 403 になり、decision は消費されない', async () => {
+  // 自前の別インスタンスで検証し、共有 srv の decided 状態に影響しないようにする
+  const localDir = await mkdtemp(path.join(tmpdir(), 'dp-review-origin-'));
+  await writeFile(path.join(localDir, 'doc.md'), '# Title\n\nhello\n');
+  const local = createReviewServer({ filePath: path.join(localDir, 'doc.md'), displayPath: 'doc.md' });
+  const localPort = await startServer(local.server, { port: 0 });
+  try {
+    const evil = await fetch(`http://127.0.0.1:${localPort}/api/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: 'http://evil.example' },
+      body: JSON.stringify({ decision: 'approve' }),
+    });
+    assert.equal(evil.status, 403);
+
+    // 拒否リクエストは先勝ちスロットを消費しないので、後続の正規 POST は 200 で通る
+    const ok = await fetch(`http://127.0.0.1:${localPort}/api/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'approve' }),
+    });
+    assert.equal(ok.status, 200);
+    const result = await local.decision;
+    assert.equal(result.decision, 'approve');
+  } finally {
+    local.close();
+  }
+});
+
 test('decision POST で Promise が解決し、2 回目は 409 (先勝ち)', async () => {
   const res = await postDecision({
     decision: 'comments',

@@ -24,6 +24,18 @@ Options:
 
 const DOC_EXTS = ['.md', '.html', '.htm'];
 
+// stdout が pipe の場合、書き込みは非同期でありパイプバッファ (64KB) を
+// 超えると console.log 直後の process.exit(0) でフラッシュ前に終了しうる。
+// レビュー結果は Claude 側が全文を読む契約なので、書き込み完了コールバックで
+// exit する。
+// 呼び出し側は必ず await すること。await しないと、書き込み完了 (＝ exit) を
+// 待たずに後続のコードが実行されてしまう (review ブロックの後の「通常プレビュー」
+// 処理へフォールスルーして誤動作する)。
+async function finishReview(text) {
+  await new Promise((resolve) => process.stdout.write(text + '\n', resolve));
+  process.exit(0);
+}
+
 let values, positionals;
 try {
   ({ values, positionals } = parseArgs({
@@ -95,17 +107,15 @@ if (positionals[0] === 'review') {
   console.error('ブラウザでレビューしてください (承認 / コメントを送信 / タブを閉じる=中断)');
   if (!values['no-open']) openBrowser(url);
 
-  const onSignal = () => {
-    console.log(DISMISSED_TEXT);
-    process.exit(0);
+  const onSignal = async () => {
+    await finishReview(DISMISSED_TEXT);
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
 
   const result = await decision;
-  console.log(formatReviewResult({ ...result, filePath: target }));
   close();
-  process.exit(0);
+  await finishReview(formatReviewResult({ ...result, filePath: target }));
 }
 
 // --- 通常プレビュー ---
