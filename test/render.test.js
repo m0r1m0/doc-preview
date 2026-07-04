@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderMarkdown, buildMarkdownPage, buildIndexPage, injectReloadScript } from '../src/render.js';
+import { renderMarkdown, buildMarkdownPage, buildIndexPage, injectReloadScript, buildReviewPage } from '../src/render.js';
 
 test('見出しとテーブルを HTML に変換する', () => {
   const html = renderMarkdown('# Title\n\n| a | b |\n|---|---|\n| 1 | 2 |');
@@ -86,4 +86,33 @@ test('injectReloadScript はリロードスクリプト以外を注入しない 
   const out = injectReloadScript('<html><body><h1>x</h1></body></html>', 'x.html');
   assert.doesNotMatch(out, /一覧に戻る/);
   assert.doesNotMatch(out, /dp-back-header/);
+});
+
+test('buildReviewPage はレビュー UI の骨格を含む完全ページを返す', () => {
+  const html = buildReviewPage({
+    title: 'design.md',
+    contentHtml: '<h1>Doc</h1>',
+    filePath: 'docs/design.md',
+  });
+  assert.match(html, /^<!DOCTYPE html>/);
+  assert.match(html, /data-dp-mode="review"/);
+  assert.match(html, /data-dp-file="docs\/design\.md"/);
+  assert.match(html, /id="content"/);
+  assert.match(html, /id="dp-comment-list"/);
+  assert.match(html, /id="dp-btn-approve"/);
+  assert.match(html, /id="dp-btn-submit"/);
+  assert.match(html, /id="dp-review-status"/);
+  assert.match(html, /\/assets\/review\.css/);
+  assert.match(html, /\/assets\/review\.js/);
+  assert.match(html, /\/assets\/mermaid\.min\.js/);
+});
+
+test('buildReviewPage は title / filePath をエスケープする', () => {
+  const html = buildReviewPage({
+    title: '<x>.md',
+    contentHtml: '',
+    filePath: 'a"b.md',
+  });
+  assert.doesNotMatch(html, /<title>レビュー: <x>/);
+  assert.match(html, /data-dp-file="a&quot;b\.md"/);
 });

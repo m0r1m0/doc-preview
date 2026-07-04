@@ -99,3 +99,32 @@ export function injectReloadScript(html, relPath) {
   if (idx === -1) return html + script;
   return html.slice(0, idx) + script + html.slice(idx);
 }
+
+export function buildReviewPage({ title, contentHtml, filePath }) {
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>レビュー: ${escapeHtml(title)}</title>
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/review.css">
+</head>
+<body data-dp-mode="review" data-dp-file="${escapeHtml(filePath)}">
+<header class="dp-review-bar">
+<span class="dp-review-file">${escapeHtml(filePath)}</span>
+<span id="dp-review-status" class="dp-review-status"></span>
+<button type="button" id="dp-btn-submit" disabled>コメントを送信 (0)</button>
+<button type="button" id="dp-btn-approve">✓ 承認</button>
+</header>
+<div class="dp-review-layout">
+<main id="content">
+${contentHtml}
+</main>
+<aside id="dp-comment-list"></aside>
+</div>
+<script src="/assets/mermaid.min.js"></script>
+<script src="/assets/review.js"></script>
+</body>
+</html>`;
+}
