@@ -46,7 +46,13 @@ export function createReviewServer({ filePath, displayPath = filePath }) {
     let body = '';
     for await (const chunk of req) {
       body += chunk;
-      if (body.length > MAX_BODY) return send(res, 413, 'Payload too large');
+      if (body.length > MAX_BODY) {
+        send(res, 413, 'Payload too large');
+        // ボディを読み切らずに応答したので、keep-alive で次のリクエストと
+        // デシンクしないよう接続ごと破棄する
+        req.destroy();
+        return;
+      }
     }
     let payload;
     try {

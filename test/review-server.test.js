@@ -74,6 +74,23 @@ test('不正 JSON は 400、不正 decision も 400', async () => {
   assert.equal((await postDecision({ decision: 'nope' })).status, 400);
 });
 
+test('MAX_BODY 超過は 413 で拒否され、接続破棄後も後続リクエストは正常', async () => {
+  const big = JSON.stringify({
+    decision: 'comments',
+    comments: [{ quote: 'x'.repeat(1_100_000), section: '', text: '' }],
+  });
+  // 413 送信後に req.destroy() するため、環境によっては応答受信前に
+  // 接続が切れてエラーになりうる。413 受信またはリクエスト失敗を許容する。
+  try {
+    const res = await postDecision(big);
+    assert.equal(res.status, 413);
+  } catch (err) {
+    assert.ok(err instanceof TypeError, `unexpected error: ${err}`);
+  }
+  // 接続破棄が後続の通常リクエストに影響しないこと
+  assert.equal((await get('/')).status, 200);
+});
+
 test('decision POST で Promise が解決し、2 回目は 409 (先勝ち)', async () => {
   const res = await postDecision({
     decision: 'comments',
