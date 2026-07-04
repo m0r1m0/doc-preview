@@ -27,6 +27,22 @@ dp report.html        # 自己完結 HTML もそのまま表示
 | `-h, --help` | ヘルプ |
 | `--version` | バージョン |
 
+## レビューモード (AI エージェント連携)
+
+Claude などの AI エージェントが書いた md をブラウザでレビューし、
+テキスト選択でコメントを付けてエージェントに返せる。
+
+    dp review docs/design.md
+
+- コマンドはユーザーの決定までブロックし、結果を stdout に出力して終了する
+  - 承認: `The user approved.`
+  - コメント: `# レビューコメント` で始まる整形済み一覧 (引用 + 見出しで位置を伝える)
+  - 中断 (タブを閉じる / Ctrl+C): `Review session closed without feedback.`
+- 表示は起動時のスナップショット固定 (ライブリロードなし)
+- 対象は .md のみ
+- Claude Code 用のスキルを `.claude/skills/dp-review/` に同梱している。
+  Bash timeout (既定最大 10 分) を超えるレビューには `BASH_MAX_TIMEOUT_MS` を設定する
+
 ## 機能
 
 - 保存で即時反映: markdown は本文だけ差し替え(スクロール位置維持)、HTML は自動リロード

@@ -1,8 +1,6 @@
 import { createServer } from 'node:http';
-import { createRequire } from 'node:module';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   renderMarkdown,
   buildMarkdownPage,
@@ -10,36 +8,12 @@ import {
   injectReloadScript,
   escapeHtml,
 } from './render.js';
-
-const publicDir = fileURLToPath(new URL('../public', import.meta.url));
-
-function resolveMermaidDist() {
-  try {
-    return createRequire(import.meta.url).resolve('mermaid/dist/mermaid.min.js');
-  } catch {
-    return fileURLToPath(new URL('../node_modules/mermaid/dist/mermaid.min.js', import.meta.url));
-  }
-}
+import { publicDir, resolveMermaidDist, MIME } from './assets.js';
 
 const ASSETS = {
   'client.js': { file: path.join(publicDir, 'client.js'), type: 'text/javascript; charset=utf-8' },
   'style.css': { file: path.join(publicDir, 'style.css'), type: 'text/css; charset=utf-8' },
   'mermaid.min.js': { file: resolveMermaidDist(), type: 'text/javascript; charset=utf-8' },
-};
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.htm': 'text/html; charset=utf-8',
-  '.md': 'text/markdown; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
 };
 
 const DOC_EXTS = ['.md', '.html', '.htm'];
