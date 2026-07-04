@@ -42,9 +42,9 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
   - `/assets/<name>` — `ASSETS` に登録した固定資産 (client.js / style.css / mermaid.min.js) のみ配信
   - それ以外 — 起点ディレクトリ配下の静的ファイル (md 内の相対パス画像など)
 - **`src/watcher.js`** — chokidar でルートを監視し、`.md/.html/.htm` の change/add/unlink だけを `onEvent({ event, path })` に流す。これが `broadcast` に繋がって SSE で配信される。
-- **`src/render.js`** — markdown → HTML 変換とページ組み立て。`renderMarkdown` / `buildMarkdownPage` / `buildIndexPage` / `injectReloadScript`。
+- **`src/render.js`** — markdown → HTML 変換とページ組み立て。`renderMarkdown` / `buildMarkdownPage` / `buildIndexPage` / `injectReloadScript`。全見出し (h1–h6) に GitHub 風スラッグの `id` を付与する core ruler (`dp_heading_ids`) を持つ。
 - **`src/open-browser.js`** — OS 別にブラウザを開く。WSL2 では `wslview` → 失敗時 `cmd.exe /c start` で Windows 側の既定ブラウザを開くフォールバックがある。
-- **`public/client.js`** — ブラウザ側。`/events` を購読し、対象パスの変更で `/raw/...` を fetch して `#content` の innerHTML だけ差し替える。**ページ全体をリロードしないのでスクロール位置が保たれる** (md モード)。mermaid ブロックは `pre.mermaid` を走査してクライアント側で描画する。
+- **`public/client.js`** — ブラウザ側。`/events` を購読し、対象パスの変更で `/raw/...` を fetch して `#content` の innerHTML だけ差し替える。**ページ全体をリロードしないのでスクロール位置が保たれる** (md モード)。mermaid ブロックは `pre.mermaid` を走査してクライアント側で描画する。md モードでは h1–h3 から ToC サイドバーを組み立て、scroll spy と開閉トグル (localStorage) を提供する。`/raw/` 差し替え後に再構築してライブ更新に追従する。
 - **`src/review-server.js`** — `createReviewServer({ filePath })` がレビュー専用サーバーを返す。
   起動時に md を 1 回だけ読むスナップショット方式 (watcher/SSE なし)。
   `POST /api/decision` (approve / comments / dismiss、先勝ちで 2 回目以降は 409) で
