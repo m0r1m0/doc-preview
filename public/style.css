@@ -191,5 +191,6 @@ body.dp-toc-collapsed #dp-toc { display: none; }
 body.dp-has-toc.dp-toc-collapsed #dp-toc-reopen { display: block; }
 @media (max-width: 900px) {
   #dp-toc, #dp-toc-reopen { display: none !important; }
-  body.dp-has-toc main#content { margin-left: auto; }
+  /* デスクトップ側の :not(.dp-toc-collapsed) ルールと同詳細度・後勝ちで margin を戻す */
+  body.dp-has-toc:not(.dp-toc-collapsed) main#content { margin-left: auto; }
 }
