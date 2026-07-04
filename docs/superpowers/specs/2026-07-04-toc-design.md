@@ -40,8 +40,9 @@ markdown-it の core ruler を自作で追加する (新規依存なし)。
   - 日本語などの非 ASCII 文字はそのまま残す
   - 同一スラッグが再出現したら `-2`, `-3` と付番する (採番状態はレンダリング 1 回ごとにリセット)
   - 空になった場合は `section-N` (N は見出しの出現順) にフォールバック
+  - 先頭・末尾が記号の見出し (例 `## !!! Hello` → `-hello`) は GitHub (github-slugger) と同じ結果になることを意図した仕様である
 - `renderMarkdown` を通る出力すべて (`/view/` 完全ページ・`/raw/` 断片・review ページ) に ID が入る。ToC UI を出すのは md プレビューだけだが、ID 付与自体は共通で害がない。
-- ID 属性値は `escapeHtml` でエスケープして出力する (既存方針の踏襲)。
+- ID 属性値は `escapeHtml` でエスケープして出力する (既存方針の踏襲)。ASCII 記号はスラッグ化の過程で除去されるため `id` 属性値に `"` 等が到達することはなく、実際の属性エスケープは markdown-it の `attrSet`/`renderAttrs` に委ねる。
 
 ### 2. クライアント側: ToC UI (public/client.js + public/style.css)
 
@@ -63,6 +64,7 @@ markdown-it の core ruler を自作で追加する (新規依存なし)。
 | 見出しゼロの文書 | ToC を出さない |
 | ライブ更新で見出し構成が変わる | ToC を再構築 (ID はサーバー付与なので常に一致) |
 | html / index / review モード | UI 変更なし (review は ID 付与のみ入る) |
+| `scroll-behavior: smooth` / `scroll-margin-top` の適用範囲 | 共有 style.css 経由のため index / review ページにも効くが、挙動影響は無視できるため許容する |
 
 ### 4. テスト
 
@@ -71,6 +73,5 @@ markdown-it の core ruler を自作で追加する (新規依存なし)。
   - 重複見出しの付番
   - インライン記法入り見出し
   - 空見出しのフォールバック
-  - 属性値のエスケープ (`"` などを含む見出し)
 - `test/server.test.js`: `/raw/` の断片に見出し ID が含まれることを確認
 - client.js (ToC UI・scroll spy) はブラウザテスト基盤がないため既存方針どおり自動テスト対象外 (手動確認)

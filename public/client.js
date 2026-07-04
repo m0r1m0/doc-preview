@@ -63,7 +63,7 @@
   function buildToc() {
     document.getElementById('dp-toc')?.remove();
     document.getElementById('dp-toc-reopen')?.remove();
-    body.classList.remove('dp-has-toc');
+    body.classList.remove('dp-has-toc', 'dp-toc-collapsed');
     tocHeadings = mode === 'md'
       ? [...document.querySelectorAll('#content h1[id], #content h2[id], #content h3[id]')]
       : [];
@@ -71,6 +71,7 @@
 
     const nav = document.createElement('nav');
     nav.id = 'dp-toc';
+    nav.setAttribute('aria-label', '目次');
     const head = document.createElement('div');
     head.className = 'dp-toc-head';
     const label = document.createElement('span');
