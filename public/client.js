@@ -141,4 +141,7 @@
 
   renderMermaidBlocks(document);
   buildToc();
+
+  // scroll spy: 現在セクションの ToC 項目をハイライト
+  document.addEventListener('scroll', updateTocActive, { passive: true });
 })();

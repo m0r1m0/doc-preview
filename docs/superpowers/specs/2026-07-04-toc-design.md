@@ -47,10 +47,10 @@ markdown-it の core ruler を自作で追加する (新規依存なし)。
 
 - md モードのときのみ、client.js が `#content` 内の h1–h3 を走査して `<nav id="dp-toc">` を組み立て、body に挿入する。`buildMarkdownPage` の HTML 構造は変えない。
 - **レイアウト**: CSS で左固定 240px のサイドバー + `body.dp-has-toc #content` に左マージン。グリッド化などの構造改修はしない。幅 900px 未満では CSS で自動非表示。
-- **scroll spy**: IntersectionObserver で現在表示中のセクションの見出しを検知し、ToC の該当項目に `.active` クラスを付ける。
+- **scroll spy**: scroll イベント (passive) で、ビューポート上端から 80px 以内に達した最後の見出しを現在セクションと判定し、ToC の該当項目に `.active` クラスを付ける。
 - **スムーズスクロール**: ToC 項目は `href="#slug"` の素のアンカー + CSS `scroll-behavior: smooth`。URL ハッシュも更新される。sticky ヘッダー (dir モードの「一覧に戻る」) と重ならないよう見出しに `scroll-margin-top` を設定する。
 - **開閉トグル**: ボタンで折りたたみ。状態は localStorage に保存し、次回表示時に復元する。
-- **ライブ更新追従**: `refresh()` の innerHTML 差し替え後に ToC を再構築し、IntersectionObserver も張り直す。
+- **ライブ更新追従**: `refresh()` の innerHTML 差し替え後に ToC を再構築し、`updateTocActive()` で現在地判定もやり直す。
 - **見出しが 1 つもない文書**では ToC (トグルボタン含む) を表示しない。
 
 ### 3. エッジケース
