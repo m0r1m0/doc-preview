@@ -101,17 +101,21 @@ if (positionals[0] === 'review') {
     console.error(`error: サーバーを起動できません: ${err.message}`);
     process.exit(1);
   }
-  const url = `http://127.0.0.1:${actualPort}/`;
-  // stdout は結果契約専用なので、案内はすべて stderr に出す
-  console.error(`doc-preview review: ${absTarget} → ${url}`);
-  console.error('ブラウザでレビューしてください (承認 / コメントを送信 / タブを閉じる=中断)');
-  if (!values['no-open']) openBrowser(url);
-
+  // シグナルハンドラは URL 案内より先に登録する。URL は消費者にとって
+  // 「準備完了」の合図なので、出力後に登録すると「URL を見て即 SIGTERM」
+  // されたとき登録前にデフォルト動作で即死し、stdout 契約が失われる
+  // (スケジューラ次第で高確率で起こる実測済みの競合)。
   const onSignal = async () => {
     await finishReview(DISMISSED_TEXT);
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
+
+  const url = `http://127.0.0.1:${actualPort}/`;
+  // stdout は結果契約専用なので、案内はすべて stderr に出す
+  console.error(`doc-preview review: ${absTarget} → ${url}`);
+  console.error('ブラウザでレビューしてください (承認 / コメントを送信 / タブを閉じる=中断)');
+  if (!values['no-open']) openBrowser(url);
 
   const result = await decision;
   close();
