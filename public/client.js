@@ -39,9 +39,79 @@
     }
   }
 
+  // ---- ToC サイドバー (md モードのみ) ----
+  const TOC_COLLAPSED_KEY = 'dp-toc-collapsed';
+  let tocHeadings = [];
+
+  function setTocCollapsed(collapsed, { save = true } = {}) {
+    body.classList.toggle('dp-toc-collapsed', collapsed);
+    if (save) localStorage.setItem(TOC_COLLAPSED_KEY, collapsed ? '1' : '0');
+  }
+
+  function updateTocActive() {
+    if (tocHeadings.length === 0) return;
+    let active = tocHeadings[0];
+    for (const h of tocHeadings) {
+      if (h.getBoundingClientRect().top <= 80) active = h;
+      else break;
+    }
+    for (const a of document.querySelectorAll('#dp-toc a')) {
+      a.classList.toggle('active', a.dataset.dpTarget === active.id);
+    }
+  }
+
+  function buildToc() {
+    document.getElementById('dp-toc')?.remove();
+    document.getElementById('dp-toc-reopen')?.remove();
+    body.classList.remove('dp-has-toc');
+    tocHeadings = mode === 'md'
+      ? [...document.querySelectorAll('#content h1[id], #content h2[id], #content h3[id]')]
+      : [];
+    if (tocHeadings.length === 0) return;
+
+    const nav = document.createElement('nav');
+    nav.id = 'dp-toc';
+    const head = document.createElement('div');
+    head.className = 'dp-toc-head';
+    const label = document.createElement('span');
+    label.textContent = '目次';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = '⟨';
+    closeBtn.title = '目次を閉じる';
+    closeBtn.addEventListener('click', () => setTocCollapsed(true));
+    head.append(label, closeBtn);
+
+    const list = document.createElement('ul');
+    for (const h of tocHeadings) {
+      const li = document.createElement('li');
+      li.className = `dp-toc-${h.tagName.toLowerCase()}`;
+      const a = document.createElement('a');
+      a.href = `#${encodeURIComponent(h.id)}`;
+      a.dataset.dpTarget = h.id;
+      a.textContent = h.textContent;
+      li.appendChild(a);
+      list.appendChild(li);
+    }
+    nav.append(head, list);
+
+    const reopen = document.createElement('button');
+    reopen.id = 'dp-toc-reopen';
+    reopen.type = 'button';
+    reopen.textContent = '☰ 目次';
+    reopen.title = '目次を開く';
+    reopen.addEventListener('click', () => setTocCollapsed(false));
+
+    body.append(nav, reopen);
+    body.classList.add('dp-has-toc');
+    setTocCollapsed(localStorage.getItem(TOC_COLLAPSED_KEY) === '1', { save: false });
+    updateTocActive();
+  }
+
   function showMissing() {
     document.getElementById('content').innerHTML =
       '<p class="dp-missing">ファイルが見つかりません</p>';
+    buildToc(); // 見出しが消えたので ToC も消える
   }
 
   async function refresh() {
@@ -54,6 +124,7 @@
     const content = document.getElementById('content');
     content.innerHTML = html; // 本文だけ差し替えるのでスクロール位置は保たれる
     await renderMermaidBlocks(content);
+    buildToc(); // 見出し構成が変わっている可能性があるので再構築
   }
 
   const es = new EventSource('/events');
@@ -69,4 +140,5 @@
   };
 
   renderMermaidBlocks(document);
+  buildToc();
 })();

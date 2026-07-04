@@ -123,3 +123,73 @@ ul:has(> .task-list-item) { padding-left: 0.4em; }
 .mermaid-rendered svg { max-width: 100%; height: auto; }
 .mermaid-error { color: #d1242f; white-space: pre-wrap; }
 .dp-missing { color: var(--muted); font-style: italic; }
+
+/* ---- ToC サイドバー (md モード、client.js が生成) ---- */
+#dp-toc {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 240px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 0.8rem 0.6rem 2rem;
+}
+/* dir モードの sticky ヘッダー (一覧に戻る) と重ならないよう下げる */
+body:has(> .dp-header) #dp-toc { top: 2.4rem; }
+.dp-toc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 0.4em 0.5em;
+}
+.dp-toc-head button,
+#dp-toc-reopen {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.1em 0.5em;
+}
+.dp-toc-head button:hover,
+#dp-toc-reopen:hover { color: var(--link); }
+#dp-toc ul { list-style: none; padding: 0; margin: 0; }
+#dp-toc a {
+  display: block;
+  padding: 0.25em 0.4em;
+  border-radius: 4px;
+  color: var(--muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#dp-toc a:hover { background: var(--code-bg); color: var(--fg); }
+#dp-toc a.active { color: var(--link); font-weight: 600; }
+#dp-toc .dp-toc-h2 { padding-left: 0.9em; }
+#dp-toc .dp-toc-h3 { padding-left: 1.9em; }
+body.dp-has-toc:not(.dp-toc-collapsed) main#content {
+  margin-left: 264px;
+  margin-right: auto;
+}
+#dp-toc-reopen {
+  display: none;
+  position: fixed;
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 5;
+}
+body:has(> .dp-header) #dp-toc-reopen { top: 2.9rem; }
+body.dp-toc-collapsed #dp-toc { display: none; }
+body.dp-has-toc.dp-toc-collapsed #dp-toc-reopen { display: block; }
+@media (max-width: 900px) {
+  #dp-toc, #dp-toc-reopen { display: none !important; }
+  body.dp-has-toc main#content { margin-left: auto; }
+}
