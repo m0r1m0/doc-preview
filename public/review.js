@@ -49,6 +49,7 @@
   document.body.appendChild(fab);
 
   let pendingRange = null;
+  let pendingComment = null; // { quote, section, marks: [Element] } — editor 表示中の仮ハイライト
 
   document.addEventListener('mouseup', (e) => {
     if (finished || fab.contains(e.target) || !editor.hidden) return;
@@ -89,11 +90,18 @@
     '</div>';
   document.body.appendChild(editor);
   const textarea = editor.querySelector('textarea');
-  let editorRange = null;
 
   function openEditor(range) {
-    editorRange = range;
+    // DOM を変更する (highlightRange) と Range が無効になり得るので、
+    // 位置・引用・見出しの計算は必ず包む前に済ませる。
     const rect = range.getBoundingClientRect();
+    const quote = range.toString();
+    const section = nearestHeading(range);
+    const marks = highlightRange(range, null);
+    for (const mark of marks) mark.classList.add('dp-annotation-pending');
+    pendingComment = { quote, section, marks };
+    window.getSelection()?.removeAllRanges();
+
     editor.style.top = `${window.scrollY + rect.bottom + 6}px`;
     editor.style.left = `${window.scrollX + rect.left}px`;
     editor.hidden = false;
@@ -101,16 +109,25 @@
     textarea.focus();
   }
 
+  function cancelPendingComment() {
+    if (!pendingComment) return;
+    for (const mark of pendingComment.marks) {
+      mark.replaceWith(...mark.childNodes);
+    }
+    content.normalize();
+    pendingComment = null;
+  }
+
   editor.querySelector('.dp-cancel').addEventListener('click', () => {
+    cancelPendingComment();
     editor.hidden = true;
   });
   editor.querySelector('.dp-save').addEventListener('click', () => {
     if (finished) return;
     const text = textarea.value.trim();
-    if (!text || !editorRange) return;
-    addComment(editorRange, text);
+    if (!text || !pendingComment) return;
+    finalizePendingComment(text);
     editor.hidden = true;
-    window.getSelection()?.removeAllRanges();
   });
 
   // --- コメントの追加・削除 ---
@@ -128,6 +145,7 @@
   // 選択 Range に交差するテキストノードを個別に <mark> で包む。
   // ノード単位に閉じた Range にしてから surroundContents するので、
   // 要素境界をまたぐ選択でも DOM が壊れない。
+  // id が null の場合は data-comment-id を付けない (仮ハイライト用、確定時に設定する)。
   function highlightRange(range, id) {
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
     const nodes = [];
@@ -144,7 +162,7 @@
       if (r.collapsed || !r.toString()) continue;
       const mark = document.createElement('mark');
       mark.className = 'dp-annotation';
-      mark.dataset.commentId = String(id);
+      if (id != null) mark.dataset.commentId = String(id);
       try {
         r.surroundContents(mark);
         marks.push(mark);
@@ -155,12 +173,15 @@
     return marks;
   }
 
-  function addComment(range, text) {
+  function finalizePendingComment(text) {
     const id = nextId++;
-    const quote = range.toString();
-    const section = nearestHeading(range);
-    const marks = highlightRange(range, id);
+    const { quote, section, marks } = pendingComment;
+    for (const mark of marks) {
+      mark.dataset.commentId = String(id);
+      mark.classList.remove('dp-annotation-pending');
+    }
     comments.push({ id, quote, section, text, marks });
+    pendingComment = null;
     renderList();
   }
 
@@ -212,6 +233,7 @@
       statusEl.textContent = '送信しました。このタブは閉じてください。';
       document.body.classList.add('dp-review-done');
       hideFab();
+      cancelPendingComment();
       editor.hidden = true;
     } catch {
       finished = false;

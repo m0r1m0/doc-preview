@@ -99,6 +99,10 @@ mark.dp-annotation {
   color: inherit;
   border-bottom: 2px solid rgba(212, 167, 44, 0.9);
 }
+mark.dp-annotation.dp-annotation-pending {
+  background: rgba(255, 213, 0, 0.18);
+  border-bottom: 2px dashed rgba(212, 167, 44, 0.9);
+}
 
 #dp-comment-fab,
 #dp-comment-editor {
