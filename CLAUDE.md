@@ -25,6 +25,7 @@ node --test --test-name-pattern "mermaid"  # 名前パターンで絞り込み
 
 npm link                          # dp / doc-preview をグローバル登録 (開発時)
 node bin/dp.js <path> [--port N] [--no-open]  # link せず直接起動
+node bin/dp.js review <file.md> [--no-open]  # レビューモード (ユーザーの決定までブロック)
 ```
 
 Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/トランスパイル工程はなく、lint 設定もない。
@@ -44,6 +45,15 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
 - **`src/render.js`** — markdown → HTML 変換とページ組み立て。`renderMarkdown` / `buildMarkdownPage` / `buildIndexPage` / `injectReloadScript`。
 - **`src/open-browser.js`** — OS 別にブラウザを開く。WSL2 では `wslview` → 失敗時 `cmd.exe /c start` で Windows 側の既定ブラウザを開くフォールバックがある。
 - **`public/client.js`** — ブラウザ側。`/events` を購読し、対象パスの変更で `/raw/...` を fetch して `#content` の innerHTML だけ差し替える。**ページ全体をリロードしないのでスクロール位置が保たれる** (md モード)。mermaid ブロックは `pre.mermaid` を走査してクライアント側で描画する。
+- **`src/review-server.js`** — `createReviewServer({ filePath })` がレビュー専用サーバーを返す。
+  起動時に md を 1 回だけ読むスナップショット方式 (watcher/SSE なし)。
+  `POST /api/decision` (approve / comments / dismiss、先勝ちで 2 回目以降は 409) で
+  `decision` Promise が解決し、CLI が `src/format-review.js` で整形して stdout に出力する。
+  stdout は結果契約専用で、URL などの案内は stderr に出す。
+- **`public/review.js`** — レビュー UI。テキスト選択で `<mark>` ハイライト
+  (Range に交差するテキストノードを個別に包む方式) + コメント、
+  タブクローズは pagehide + sendBeacon で dismiss を通知する。
+- **`src/assets.js`** — publicDir / MIME / mermaid 解決の共有定義 (server.js と review-server.js が使う)。
 
 ### ライブリロードの仕組み (md と html で異なる)
 
@@ -62,6 +72,10 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
 - **長時間セッション対策**: server / watcher とも `error` リスナーを付けてクラッシュを防ぐ (過去の修正)。
 - **HTML/属性は必ずエスケープ**: `render.js` の `escapeHtml` を使う。`injectReloadScript` はパスに `</script>` が入ってもタグを壊さないよう `<` エスケープする (テストで担保)。
 - ドキュメント対象の拡張子は `.md` / `.html` / `.htm` に限定 (`DOC_EXTS`)。一覧・監視ともこの集合で判定する。
+- **`dp review` の stdout は結果契約専用**: `The user approved.` /
+  `Review session closed without feedback.` / `# レビューコメント` 形式のみを出力する。
+  文言を変えるときは `.claude/skills/dp-review/SKILL.md` と README も合わせて変える。
+  案内ログは stderr に出すこと。
 
 ## テスト方針
 
