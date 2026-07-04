@@ -18,6 +18,26 @@ test('通常のコードブロックは pre.mermaid にならない', () => {
   assert.doesNotMatch(html, /class="mermaid"/);
 });
 
+test('言語指定のコードブロックは hljs でハイライトされる', () => {
+  const html = renderMarkdown('```js\nconst a = 1;\n```');
+  assert.match(html, /<code class="hljs language-js">/);
+  assert.match(html, /hljs-keyword/); // const がキーワード着色される
+});
+
+test('未知の言語のコードブロックはエスケープのみのプレーンな hljs ブロックになる', () => {
+  const html = renderMarkdown('```unknownlang\n<a & b>\n```');
+  assert.match(html, /<code class="hljs">/);
+  assert.match(html, /&lt;a &amp; b&gt;/);
+  assert.doesNotMatch(html, /hljs-/); // トークン span は付かない
+});
+
+test('タスクリストはチェックボックス付きの li になる', () => {
+  const html = renderMarkdown('- [ ] todo\n- [x] done');
+  assert.match(html, /type="checkbox"/);
+  assert.match(html, /checked/); // [x] は checked
+  assert.doesNotMatch(html, /\[ \] todo/); // 生の [ ] テキストは残らない
+});
+
 test('buildMarkdownPage は data 属性とアセット参照を含む完全ページを返す', () => {
   const page = buildMarkdownPage({ title: 'a.md', contentHtml: '<p>hi</p>', relPath: 'a.md' });
   assert.match(page, /<html lang="ja">/);

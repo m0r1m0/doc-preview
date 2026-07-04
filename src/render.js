@@ -1,4 +1,6 @@
 import MarkdownIt from 'markdown-it';
+import taskLists from 'markdown-it-task-lists';
+import hljs from 'highlight.js';
 
 export function escapeHtml(s) {
   return s
@@ -8,7 +10,23 @@ export function escapeHtml(s) {
     .replaceAll('"', '&quot;');
 }
 
-const md = new MarkdownIt({ html: true, linkify: true });
+// 言語指定があり hljs が知っていればサーバー側でハイライト。
+// 未知の言語や指定なしはエスケープのみのプレーンなコードブロックにする。
+// (ブラウザ側 JS は不要 = オフラインでも色が付く)
+function highlightCode(str, lang) {
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
+      return `<pre><code class="hljs language-${lang}">${out}</code></pre>`;
+    } catch {
+      // fall through to plain
+    }
+  }
+  return `<pre><code class="hljs">${escapeHtml(str)}</code></pre>`;
+}
+
+const md = new MarkdownIt({ html: true, linkify: true, highlight: highlightCode });
+md.use(taskLists);
 
 const defaultFence = md.renderer.rules.fence;
 

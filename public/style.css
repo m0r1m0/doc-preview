@@ -6,6 +6,15 @@
   --border: #d1d9e0;
   --code-bg: #f6f8fa;
   --link: #0969da;
+  /* highlight.js トークン色 (GitHub light) */
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-title: #8250df;
+  --hl-builtin: #953800;
+  --hl-attr: #0550ae;
+  --hl-meta: #116329;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -15,6 +24,15 @@
     --border: #3d444d;
     --code-bg: #161b22;
     --link: #4493f8;
+    /* highlight.js トークン色 (GitHub dark) */
+    --hl-comment: #8b949e;
+    --hl-keyword: #ff7b72;
+    --hl-string: #a5d6ff;
+    --hl-number: #79c0ff;
+    --hl-title: #d2a8ff;
+    --hl-builtin: #ffa657;
+    --hl-attr: #79c0ff;
+    --hl-meta: #7ee787;
   }
 }
 * { box-sizing: border-box; }
@@ -81,6 +99,26 @@ hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 .dp-file-list li { border-bottom: 1px solid var(--border); }
 .dp-file-list a { display: block; padding: 0.6em 0.4em; text-decoration: none; }
 .dp-file-list a:hover { background: var(--code-bg); }
+/* highlight.js トークン (GitHub 配色を CSS 変数で light/dark 両対応) */
+.hljs-comment, .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-doctag,
+.hljs-section, .hljs-type, .hljs-name, .hljs-tag { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-symbol, .hljs-bullet { color: var(--hl-string); }
+.hljs-number, .hljs-selector-class, .hljs-selector-id { color: var(--hl-number); }
+.hljs-title, .hljs-title.class_, .hljs-title.function_,
+.hljs-function .hljs-title { color: var(--hl-title); }
+.hljs-built_in, .hljs-class .hljs-title { color: var(--hl-builtin); }
+.hljs-variable, .hljs-template-variable, .hljs-attr, .hljs-attribute,
+.hljs-property, .hljs-params { color: var(--hl-attr); }
+.hljs-meta { color: var(--hl-meta); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+
+/* タスクリスト (markdown-it-task-lists): 行頭のマーカーを消してチェックボックスを揃える */
+.task-list-item { list-style: none; }
+ul:has(> .task-list-item) { padding-left: 0.4em; }
+.task-list-item-checkbox { margin: 0 0.5em 0 0; vertical-align: middle; }
+
 .mermaid-rendered { margin: 1em 0; text-align: center; }
 .mermaid-rendered svg { max-width: 100%; height: auto; }
 .mermaid-error { color: #d1242f; white-space: pre-wrap; }
