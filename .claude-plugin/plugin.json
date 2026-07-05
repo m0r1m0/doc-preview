@@ -1,0 +1,8 @@
+{
+  "name": "dp-review",
+  "description": "AI エージェントが書いた md をブラウザでレビューし、コメントを返す dp review 連携スキル",
+  "version": "0.1.0",
+  "author": { "name": "m0r1m0" },
+  "homepage": "https://github.com/m0r1m0/doc-preview",
+  "repository": "https://github.com/m0r1m0/doc-preview"
+}

@@ -40,8 +40,19 @@ Claude などの AI エージェントが書いた md をブラウザでレビ�
   - 中断 (タブを閉じる / Ctrl+C): `Review session closed without feedback.`
 - 表示は起動時のスナップショット固定 (ライブリロードなし)
 - 対象は .md のみ
-- Claude Code 用のスキルを `.claude/skills/dp-review/` に同梱している。
-  Bash timeout (既定最大 10 分) を超えるレビューには `BASH_MAX_TIMEOUT_MS` を設定する
+- Bash timeout (既定最大 10 分) を超えるレビューには `BASH_MAX_TIMEOUT_MS` を設定する
+
+### Claude Code プラグイン (dp-review スキル)
+
+Claude Code なら、成果物を書き終えたエージェントが自動で `dp review` を呼ぶスキルをプラグインとして入れられる。
+
+```
+/plugin marketplace add m0r1m0/doc-preview
+/plugin install dp-review@doc-preview
+```
+
+ユーザースコープで入るので全プロジェクトで有効になる。
+スキルは `dp` コマンドを呼ぶので、別途 `npm link` (または `npm install -g doc-preview`) で `dp` を通しておくこと。
 
 ## 機能
 

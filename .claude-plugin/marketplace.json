@@ -1,0 +1,14 @@
+{
+  "name": "doc-preview",
+  "description": "doc-preview (dp) の Claude Code プラグイン",
+  "owner": { "name": "m0r1m0" },
+  "plugins": [
+    {
+      "name": "dp-review",
+      "source": "./",
+      "description": "md 成果物を dp review でブラウザレビューしてもらうスキル",
+      "category": "productivity",
+      "tags": ["markdown", "review", "preview"]
+    }
+  ]
+}
