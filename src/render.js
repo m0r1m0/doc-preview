@@ -28,6 +28,36 @@ function highlightCode(str, lang) {
 const md = new MarkdownIt({ html: true, linkify: true, highlight: highlightCode });
 md.use(taskLists);
 
+// 見出しに GitHub 風スラッグの id を付与する core ruler (自作、依存追加なし)。
+// ToC (client.js) のアンカー先および #見出し 直リンクに使う。
+const SLUG_PUNCT_RE = /[!"#$%&'()*+,./:;<=>?@[\]^`{|}~]/g;
+
+function slugify(text) {
+  return text.trim().toLowerCase().replace(SLUG_PUNCT_RE, '').replace(/\s+/g, '-');
+}
+
+md.core.ruler.push('dp_heading_ids', (state) => {
+  const used = new Set();
+  let n = 0;
+  const tokens = state.tokens;
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i].type !== 'heading_open') continue;
+    n++;
+    const inline = tokens[i + 1];
+    const text = inline?.type === 'inline'
+      ? inline.children
+          .filter((t) => t.type === 'text' || t.type === 'code_inline')
+          .map((t) => t.content)
+          .join('')
+      : '';
+    const base = slugify(text) || `section-${n}`;
+    let slug = base;
+    for (let k = 2; used.has(slug); k++) slug = `${base}-${k}`;
+    used.add(slug);
+    tokens[i].attrSet('id', slug);
+  }
+});
+
 const defaultFence = md.renderer.rules.fence;
 
 md.renderer.rules.fence = (tokens, idx, options, env, self) => {
