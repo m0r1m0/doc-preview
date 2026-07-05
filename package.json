@@ -3,6 +3,24 @@
   "version": "0.1.0",
   "description": "Live preview markdown/HTML in the browser with SSE reload and mermaid support",
   "private": true,
+  "license": "MIT",
+  "author": "Yuki Morimoto",
+  "homepage": "https://github.com/m0r1m0/doc-preview#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m0r1m0/doc-preview.git"
+  },
+  "bugs": {
+    "url": "https://github.com/m0r1m0/doc-preview/issues"
+  },
+  "keywords": [
+    "markdown",
+    "html",
+    "preview",
+    "live-reload",
+    "mermaid",
+    "cli"
+  ],
   "type": "module",
   "bin": {
     "dp": "bin/dp.js",
