@@ -54,6 +54,20 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
   (Range に交差するテキストノードを個別に包む方式) + コメント、
   タブクローズは pagehide + sendBeacon で dismiss を通知する。
 - **`src/assets.js`** — publicDir / MIME / mermaid 解決の共有定義 (server.js と review-server.js が使う)。
+- **`skills/dp-review/SKILL.md`** — Claude Code 用のレビュー依頼スキル。`.claude-plugin/` のマニフェストと合わせて配布プラグインを構成する (下記)。
+
+### Claude Code プラグイン
+
+このリポジトリは「マーケットプレイス兼単一プラグイン」を兼ねる。
+
+- **`.claude-plugin/plugin.json`** — プラグイン `dp-review` の定義。
+- **`.claude-plugin/marketplace.json`** — `source: "./"` でリポジトリ自身をプラグインとして公開する。
+- **`skills/`** — プラグイン規約のスキル配置場所 (プラグイン root、`.claude-plugin/` の外)。
+
+ユーザーは `/plugin marketplace add m0r1m0/doc-preview` → `/plugin install dp-review@doc-preview` で入れる。
+**この開発リポジトリ自身でスキルを使うには**、ローカルパスでマーケットプレイスを追加する:
+`/plugin marketplace add .` (リポジトリ root で実行) → `/plugin install dp-review@doc-preview`。
+スキルは `dp review` を呼ぶだけなので、別途 `npm link` で `dp` を通しておく。
 
 ### ライブリロードの仕組み (md と html で異なる)
 
@@ -74,7 +88,7 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
 - ドキュメント対象の拡張子は `.md` / `.html` / `.htm` に限定 (`DOC_EXTS`)。一覧・監視ともこの集合で判定する。
 - **`dp review` の stdout は結果契約専用**: `The user approved.` /
   `Review session closed without feedback.` / `# レビューコメント` 形式のみを出力する。
-  文言を変えるときは `.claude/skills/dp-review/SKILL.md` と README も合わせて変える。
+  文言を変えるときは `skills/dp-review/SKILL.md` と README も合わせて変える。
   案内ログは stderr に出すこと。
 - **`/api/decision` は Origin ヘッダーを検証する**: `127.0.0.1` / `localhost` 以外のオリジンからの POST は 403 で拒否する (Origin なしは許可)。任意のウェブページからの承認偽造・コメント注入を防ぐため。
 
