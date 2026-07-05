@@ -42,17 +42,42 @@ Claude などの AI エージェントが書いた md をブラウザでレビ�
 - 対象は .md のみ
 - Bash timeout (既定最大 10 分) を超えるレビューには `BASH_MAX_TIMEOUT_MS` を設定する
 
-### Claude Code プラグイン (dp-review スキル)
+### Claude Code スキルのセットアップ
 
-Claude Code なら、成果物を書き終えたエージェントが自動で `dp review` を呼ぶスキルをプラグインとして入れられる。
+Claude Code なら、成果物 (md) を書き終えたエージェントが自動で `dp review` を呼び、
+ユーザーのレビューを待つスキル `dp-review` をプラグインとして導入できる。手動でファイルをコピーする必要はない。
+
+**前提**: スキルは `dp` コマンドを呼ぶので、先に上記「インストール」の `npm link` を済ませて `dp` を通しておく。
+
+**導入手順** (Claude Code のプロンプトで実行):
 
 ```
 /plugin marketplace add m0r1m0/doc-preview
 /plugin install dp-review@doc-preview
 ```
 
-ユーザースコープで入るので全プロジェクトで有効になる。
-スキルは `dp` コマンドを呼ぶので、別途 `npm link` で `dp` を通しておくこと。
+- 1 行目でこのリポジトリをマーケットプレイスとして登録し、2 行目でスキルを入れる。
+- ユーザースコープで入るので、一度入れれば全プロジェクトで有効になる。
+
+**確認**: `/plugin` を開くと導入済みプラグインとして `dp-review` が表示される。
+スキルはエージェントが md 成果物を書き終えた場面で自動的に呼ばれる (「レビューさせて」と指示しても発火する)。
+
+**更新 / 削除**:
+
+```
+/plugin marketplace update doc-preview   # マーケットプレイスを最新化
+/plugin uninstall dp-review@doc-preview  # 削除
+```
+
+#### このリポジトリを clone して開発する場合
+
+移動させたスキル本体は `skills/dp-review/` にある。開発リポジトリ自身でスキルを使うときは、
+GitHub 経由ではなくローカルパスでマーケットプレイスを登録する (リポジトリ root で実行):
+
+```
+/plugin marketplace add .
+/plugin install dp-review@doc-preview
+```
 
 ## 機能
 
