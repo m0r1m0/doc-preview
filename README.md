@@ -52,7 +52,7 @@ Claude Code なら、成果物を書き終えたエージェントが自動で `
 ```
 
 ユーザースコープで入るので全プロジェクトで有効になる。
-スキルは `dp` コマンドを呼ぶので、別途 `npm link` (または `npm install -g doc-preview`) で `dp` を通しておくこと。
+スキルは `dp` コマンドを呼ぶので、別途 `npm link` で `dp` を通しておくこと。
 
 ## 機能
 
@@ -69,3 +69,9 @@ Claude Code なら、成果物を書き終えたエージェントが自動で `
 ```bash
 npm test   # node --test
 ```
+
+CI (GitHub Actions) が push / PR ごとに Node 20・22 で `npm test` を実行する。
+
+## ライセンス
+
+[MIT](LICENSE)
