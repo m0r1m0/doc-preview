@@ -43,7 +43,7 @@ Node.js >= 20 必須 (`node:test`、`parseArgs`、ESM を使用)。ビルド/ト
   - それ以外 — 起点ディレクトリ配下の静的ファイル (md 内の相対パス画像など)
 - **`src/watcher.js`** — chokidar でルートを監視し、`.md/.html/.htm` の change/add/unlink だけを `onEvent({ event, path })` に流す。これが `broadcast` に繋がって SSE で配信される。
 - **`src/render.js`** — markdown → HTML 変換とページ組み立て。`renderMarkdown` / `buildMarkdownPage` / `buildIndexPage` / `injectReloadScript`。全見出し (h1–h6) に GitHub 風スラッグの `id` を付与する core ruler (`dp_heading_ids`) を持つ。
-- **`src/open-browser.js`** — OS 別にブラウザを開く。WSL2 では `wslview` → 失敗時 `cmd.exe /c start` で Windows 側の既定ブラウザを開くフォールバックがある。
+- **`src/open-browser.js`** — ブラウザを開く。`browserCandidates()` が候補リストを組み、上から spawn を試して失敗 (ENOENT や非 0 終了) したら次にフォールバックする。全部失敗してもプロセスは落とさない (URL の手動オープンに委ねる)。候補は **Orca (`ORCA_RELAY_SOCKET_PATH` があるとき) の `orca tab create --url`** → macOS `open` / WSL2 `wslview` → `cmd.exe /c start` → `cmd.exe` の絶対パス (`/mnt/c/Windows/System32/cmd.exe`) / 他 Linux `xdg-open`。Orca を最優先にするのは、SSH 越しのシェルから OS の既定ブラウザを起こすと対話セッション外 (Windows ならセッション 0) で起動されてウィンドウが見えないため。Orca に渡す URL は `127.0.0.1` を `localhost` に書き換える (Orca のブラウザは SOCKS 越しに繋ぐので、リテラルの 127.0.0.1 は `ERR_SOCKS_CONNECTION_FAILED` になる)。`cmd.exe` の絶対パス候補は、Windows 側の PATH が継承されないシェルで名前解決できないケース用。
 - **`public/client.js`** — ブラウザ側。`/events` を購読し、対象パスの変更で `/raw/...` を fetch して `#content` の innerHTML だけ差し替える。**ページ全体をリロードしないのでスクロール位置が保たれる** (md モード)。mermaid ブロックは `pre.mermaid` を走査してクライアント側で描画する。md モードでは h1–h3 から ToC サイドバーを組み立て、scroll spy と開閉トグル (localStorage) を提供する。`/raw/` 差し替え後に再構築してライブ更新に追従する。
 - **`src/review-server.js`** — `createReviewServer({ filePath })` がレビュー専用サーバーを返す。
   起動時に md を 1 回だけ読むスナップショット方式 (watcher/SSE なし)。
