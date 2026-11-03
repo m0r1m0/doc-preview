@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { browserCandidates } from '../src/open-browser.js';
+import {
+  browserCandidates,
+  listInteropSockets,
+  findInteractiveInterop,
+} from '../src/open-browser.js';
 
 const URL = 'http://127.0.0.1:3000/';
 const never = () => false;
@@ -69,4 +73,73 @@ test('Orca 配下で orca が PATH に無くても絶対パスを候補にする
 test('Orca の環境変数が無ければ orca は候補に入らない', () => {
   const got = browserCandidates(URL, { ...base, platform: 'darwin', env: { HOME: '/home/u' } });
   assert.deepEqual(cmds(got), ['open']);
+});
+
+// --- WSL_INTEROP が無い環境 (systemd 配下で動く herdr など) ---
+// WSL_INTEROP が無いと Windows 側プロセスはセッション 0 で起動され、
+// ブラウザが画面に出ない。画面のあるセッションに繋がるソケットを探して使う。
+
+test('WSL_INTEROP を渡すと WSL の候補すべての env に入る', () => {
+  const env = { HOME: '/home/u' };
+  const got = browserCandidates(URL, {
+    ...base,
+    env,
+    platform: 'linux',
+    wsl: true,
+    exists: (p) => p === '/mnt/c/Windows/System32/cmd.exe',
+    interop: '/run/WSL/1229_interop',
+  });
+  for (const c of got) {
+    assert.deepEqual(c.env, { HOME: '/home/u', WSL_INTEROP: '/run/WSL/1229_interop' });
+  }
+});
+
+test('interop を渡さなければ env は付けない', () => {
+  const got = browserCandidates(URL, { ...base, platform: 'linux', wsl: true });
+  for (const c of got) assert.equal(c.env, undefined);
+});
+
+test('interop ソケットは生きている /init のものを新しい (pid が大きい) 順に並べる', () => {
+  const got = listInteropSockets({
+    readdir: () => ['1_interop', '2564_interop', '311_interop', '1229_interop', '999_interop', 'other'],
+    alive: (pid) => pid !== 999,
+  });
+  assert.deepEqual(got, [
+    '/run/WSL/2564_interop',
+    '/run/WSL/1229_interop',
+    '/run/WSL/311_interop',
+    '/run/WSL/1_interop',
+  ]);
+});
+
+test('/run/WSL が読めなければ空', () => {
+  const got = listInteropSockets({
+    readdir: () => {
+      throw new Error('ENOENT');
+    },
+    alive: () => true,
+  });
+  assert.deepEqual(got, []);
+});
+
+test('セッション 0 のソケットは飛ばし、最初に見つかった画面のあるセッションのものを返す', async () => {
+  const sessions = { '/run/WSL/311_interop': 0, '/run/WSL/1229_interop': 1, '/run/WSL/2564_interop': 1 };
+  const probed = [];
+  const got = await findInteractiveInterop({
+    sockets: ['/run/WSL/311_interop', '/run/WSL/1229_interop', '/run/WSL/2564_interop'],
+    probe: async (s) => {
+      probed.push(s);
+      return sessions[s];
+    },
+  });
+  assert.equal(got, '/run/WSL/1229_interop');
+  assert.deepEqual(probed, ['/run/WSL/311_interop', '/run/WSL/1229_interop']);
+});
+
+test('調べられなかったソケットは飛ばし、全滅なら null', async () => {
+  const got = await findInteractiveInterop({
+    sockets: ['/run/WSL/311_interop', '/run/WSL/1_interop'],
+    probe: async (s) => (s === '/run/WSL/1_interop' ? 0 : null),
+  });
+  assert.equal(got, null);
 });

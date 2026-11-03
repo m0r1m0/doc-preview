@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { execFile, spawn } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 function isWsl() {
@@ -52,8 +52,7 @@ export function browserCandidates(url, overrides = {}) {
   // cmd.exe は cwd が WSL パスだと UNC 警告を出すので、見つけた exe の
   // ディレクトリ (Windows から見えるパス) を cwd にする。
   const startArgs = ['/c', 'start', '', url];
-  return [
-    ...orca,
+  const wslCandidates = [
     { cmd: 'wslview', args: [url] },
     { cmd: 'cmd.exe', args: startArgs },
     ...WIN_CMD_PATHS.filter(exists).map((cmd) => ({
@@ -62,9 +61,72 @@ export function browserCandidates(url, overrides = {}) {
       cwd: path.dirname(cmd),
     })),
   ];
+  // interop ソケットを指定されたら、Windows 側プロセスがそのソケット経由
+  // (= 画面のあるセッション) で起動されるよう WSL_INTEROP を渡す。
+  const withInterop = overrides.interop
+    ? wslCandidates.map((c) => ({ ...c, env: { ...env, WSL_INTEROP: overrides.interop } }))
+    : wslCandidates;
+  return [...orca, ...withInterop];
 }
 
-function trySpawn({ cmd, args, cwd, waitExit }, onError) {
+// --- WSL_INTEROP が無い環境への対処 ---
+// systemd のユーザーサービスとして動くターミナル (herdr など) の配下では
+// WSL_INTEROP が設定されない。このとき Windows 側プロセスは既定の interop
+// (セッション 0) で起動され、ブラウザを開いても画面に出ない。
+// /run/WSL/<pid>_interop の中から画面のあるセッション (1 以上) に繋がるものを
+// 実際に問い合わせて探す。どれがそうかはファイル名だけでは判別できない。
+
+const INTEROP_DIR = '/run/WSL';
+const POWERSHELL = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe';
+
+function pidAlive(pid) {
+  return existsSync(`/proc/${pid}`);
+}
+
+// 生きている /init の interop ソケットを新しい (pid が大きい) 順に返す。
+export function listInteropSockets({ readdir = readdirSync, alive = pidAlive } = {}) {
+  let names;
+  try {
+    names = readdir(INTEROP_DIR);
+  } catch {
+    return [];
+  }
+  return names
+    .map((name) => ({ name, m: /^(\d+)_interop$/.exec(name) }))
+    .filter(({ m }) => m && alive(Number(m[1])))
+    .sort((a, b) => Number(b.m[1]) - Number(a.m[1]))
+    .map(({ name }) => `${INTEROP_DIR}/${name}`);
+}
+
+// そのソケット経由で起動した Windows プロセスのセッション ID を返す。失敗時は null。
+function probeSession(socket) {
+  return new Promise((resolve) => {
+    try {
+      execFile(
+        POWERSHELL,
+        ['-NoProfile', '-NonInteractive', '-Command', '[Diagnostics.Process]::GetCurrentProcess().SessionId'],
+        { cwd: path.dirname(POWERSHELL), env: { ...process.env, WSL_INTEROP: socket }, timeout: 5000 },
+        (err, stdout) => {
+          const n = Number.parseInt(String(stdout).trim(), 10);
+          resolve(err || Number.isNaN(n) ? null : n);
+        },
+      );
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+// 画面のあるセッション (1 以上) に繋がる最初のソケットを返す。無ければ null。
+export async function findInteractiveInterop({ sockets = listInteropSockets(), probe = probeSession } = {}) {
+  for (const socket of sockets) {
+    const session = await probe(socket);
+    if (session != null && session > 0) return socket;
+  }
+  return null;
+}
+
+function trySpawn({ cmd, args, cwd, env, waitExit }, onError) {
   let done = false;
   // error と exit が両方飛ぶことがあるので、フォールバックは 1 回だけ。
   const fail = () => {
@@ -73,7 +135,7 @@ function trySpawn({ cmd, args, cwd, waitExit }, onError) {
     onError();
   };
   try {
-    const child = spawn(cmd, args, { stdio: 'ignore', detached: !waitExit, cwd });
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: !waitExit, cwd, env });
     child.on('error', fail);
     if (waitExit) {
       child.on('exit', (code) => {
@@ -97,6 +159,17 @@ function trySpawnChain([head, ...rest]) {
   trySpawn(head, () => trySpawnChain(rest));
 }
 
-export function openBrowser(url) {
-  trySpawnChain(browserCandidates(url));
+export async function openBrowser(url) {
+  // Orca 配下は Orca に任せる。WSL_INTEROP があるなら既定の挙動で画面に出る。
+  const needInterop =
+    isWsl() && !process.env.WSL_INTEROP && !process.env.ORCA_RELAY_SOCKET_PATH && existsSync(POWERSHELL);
+  let interop = null;
+  if (needInterop) {
+    try {
+      interop = await findInteractiveInterop();
+    } catch {
+      // 見つからなければ従来どおり開く (URL の手動オープンに委ねる)
+    }
+  }
+  trySpawnChain(browserCandidates(url, interop ? { interop } : {}));
 }
